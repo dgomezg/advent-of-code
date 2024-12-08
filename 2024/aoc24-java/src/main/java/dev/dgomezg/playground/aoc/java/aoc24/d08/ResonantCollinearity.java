@@ -80,6 +80,52 @@ public class ResonantCollinearity {
         generateAndPrintMap(map.length, map[0].length, List.of(new MapLayer('#', antinodes)));
 
         System.out.printf("Part01: %d%n", count);
+
+
+        Set<Position> antinodesPart02 = new HashSet<>();
+        System.out.printf("There are %d different type of antennas in the map%n", antennas.size());
+        for (Map.Entry<Character, List<Position>> antennaFamily : antennas.entrySet()) {
+            List<Position> antennaInstallations = antennaFamily.getValue();
+            System.out.printf("\tAntena %s has %d installations%n", antennaFamily.getKey(), antennaInstallations.size());
+
+            int currAntennaIdx = 0;
+            for (Position currAntenna : antennaInstallations) {
+                //find distance with the rest of antennas
+                for (int i = currAntennaIdx + 1; i < antennaInstallations.size(); i++) {
+                    System.out.printf("\tComparing Antena %s with %s.", currAntenna, antennaInstallations.get(i));
+                    Position distance = currAntenna.distanceTo(antennaInstallations.get(i));
+                    System.out.printf("\tDistance between Antennas is %s%n", distance);
+
+                    System.out.printf("\t\tAntinodes in positive direction: ");
+                    //Position antinodeA = antennaInstallations.get(i).moveTo(distance);
+                    Position antinodeA = currAntenna.moveTo(distance);
+                    while (antinodeA.isInsideMap(map)) {
+                        System.out.printf("%s - ", antinodeA);
+                        antinodesPart02.add(antinodeA);
+                        antinodeA = antinodeA.moveTo(distance);
+                    }
+
+                    System.out.printf("\t\tAntinodes in reverse direction: ");
+                    //Position antinodeB = currAntenna.moveTo(distance.reverse());
+                    Position antinodeB = antennaInstallations.get(i).moveTo(distance.reverse());
+                    while (antinodeB.isInsideMap(map)) {
+                        System.out.printf("%s - ", antinodeB);
+                        antinodesPart02.add(antinodeB);
+                        antinodeB = antinodeB.moveTo(distance.reverse());
+                    }
+                    System.out.println();
+                }
+                currAntennaIdx++;
+
+            }
+        }
+
+        long countPar02 = antinodesPart02.stream()
+                .filter(a -> a.isInsideMap(map))
+                .count();
+
+
+        System.out.printf("part02: %d%n", countPar02);
     }
 
     public static void generateAndPrintMap(int height, int width, Collection<MapLayer> layers) {
