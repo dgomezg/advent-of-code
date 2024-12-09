@@ -1,6 +1,7 @@
 package dev.dgomezg.playground.aoc.java.utils;
 
 import java.util.function.IntBinaryOperator;
+import java.util.stream.IntStream;
 
 public class ArrayUtils {
 
@@ -18,4 +19,7 @@ public class ArrayUtils {
         return newArray;
     }
 
+    public static int[] generateArray(int value, int length) {
+        return IntStream.generate(() -> value).limit(length).toArray();
+    }
 }
