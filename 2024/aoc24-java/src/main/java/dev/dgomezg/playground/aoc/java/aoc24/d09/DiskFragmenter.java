@@ -18,6 +18,9 @@ public class DiskFragmenter {
         DiskFragmenter diskFragmenter = new DiskFragmenter(fileLines.get(0));
         System.out.printf("%nPart 01: %d%n", diskFragmenter.checksum());
 
+        diskFragmenter.reset();
+        diskFragmenter.deFragmentUsingFullFiles();
+        System.out.printf("%nPart 02: %d%n",diskFragmenter.checksum());
 
     }
 
@@ -28,6 +31,78 @@ public class DiskFragmenter {
     public DiskFragmenter(String fragmented) {
         this.fragmented = fragmented;
     }
+    public void reset() {
+        expanded = null;
+        defragmented = null;
+    }
+
+    public String deFragmentUsingFullFiles() {
+        if (expanded == null) {
+            this.expand();
+        }
+        this.defragmented = Arrays.copyOf(expanded, expanded.length);
+
+        int insertIdx = getInsertIdx(0, defragmented);
+        int readIdx = getReadIdx(expanded.length - 1, insertIdx, defragmented);
+
+
+        while (insertIdx < readIdx) {
+            int fileSize = calculateFileSize(readIdx, defragmented);
+            int destination = findfirstGapBigEnough(insertIdx, readIdx, fileSize, defragmented);
+            if (destination == -1) {
+                //There is no place to move the file at position readIdx
+                // we advance the readIdx pointer
+                insertIdx = getInsertIdx(0, defragmented);
+                readIdx = getReadIdx(readIdx - fileSize, insertIdx, defragmented);
+            } else {
+                //The last file can be moved completely
+                // move the to the destination and advance the reading pointer
+                insertIdx = destination;
+                moveFile(readIdx, insertIdx, fileSize, defragmented);
+                readIdx = getReadIdx(readIdx - fileSize +1, insertIdx, defragmented);
+                insertIdx = getInsertIdx(0, defragmented);
+            }
+
+        }
+
+        return diskContentToString(this.defragmented);
+
+    }
+
+    private int findfirstGapBigEnough(int insertIdx, int readIdx, int fileSize, int[] defragmented) {
+        int gapSize = calculatGapSize(insertIdx, defragmented);
+        while (insertIdx < readIdx && gapSize < fileSize) {
+            insertIdx = getInsertIdx(insertIdx + gapSize, defragmented);
+            gapSize = calculatGapSize(insertIdx, defragmented);
+        }
+        if (insertIdx >= readIdx) {
+            return -1;
+        }
+        return insertIdx;
+    }
+
+    private void moveFile(int from, int to, int size, int[] defragmented) {
+        System.arraycopy(defragmented, from - size +1, defragmented, to, size);
+        System.arraycopy(ArrayUtils.generateArray(-1, size), 0, defragmented, from - size + 1, size);
+    }
+
+    private int calculatGapSize(int idx, int[] defragmented) {
+        int gapSize = 0;
+
+        while (idx + gapSize < defragmented.length && defragmented[idx+gapSize ] < 0) {
+            gapSize++;
+        }
+        return gapSize;
+    }
+
+    private int calculateFileSize(int readIdx, int[] defragmented) {
+        int fileSize = 0;
+        int fileID = defragmented[readIdx];
+        while(readIdx - fileSize >= 0 && defragmented[readIdx - fileSize] == fileID) {
+            fileSize ++;
+        }
+        return fileSize;
+    }
 
     public String deFragment() {
         if (expanded == null) {
@@ -35,10 +110,8 @@ public class DiskFragmenter {
         }
         this.defragmented = Arrays.copyOf(expanded, expanded.length);
 
-        int insertIdx = 0;
-        insertIdx = getInsertIdx(insertIdx, defragmented);
-        int readIdx = expanded.length - 1;
-        getReadIdx(readIdx, insertIdx, defragmented);
+        int insertIdx = getInsertIdx(0, defragmented);
+        int readIdx = getReadIdx(expanded.length - 1, insertIdx, defragmented);
 
         while (insertIdx < readIdx) {
             defragmented[insertIdx] = defragmented[readIdx];
@@ -90,7 +163,6 @@ public class DiskFragmenter {
     private String diskContentToString(int[] content) {
         return Arrays.stream(content)
                 .mapToObj(i -> i < 0 ? "." : Integer.toString(i))
-                .peek(value -> System.out.printf("%s", value))
                 .collect(Collectors.joining(""));
     }
 
@@ -101,8 +173,10 @@ public class DiskFragmenter {
 
         long result = 0L;
         int idx = 0;
-        while (idx < defragmented.length && defragmented[idx] != -1) {
-            result += defragmented[idx] * idx;
+        while (idx < defragmented.length ) {
+            if (defragmented[idx] != -1) {
+                result += defragmented[idx] * idx;
+            }
             idx++;
         }
         return result;

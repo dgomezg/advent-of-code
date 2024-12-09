@@ -30,4 +30,10 @@ class DiskFragmenterTest {
         DiskFragmenter diskFragmenter = new DiskFragmenter("2333133121414131402");
         assertEquals(1928, diskFragmenter.checksum());
     }
+
+    @Test
+    void shouldDeFragmentUsingFullFiles() {
+        DiskFragmenter diskFragmenter = new DiskFragmenter("2333133121414131402");
+        assertEquals("00992111777.44.333....5555.6666.....8888..", diskFragmenter.deFragmentUsingFullFiles());
+    }
 }
